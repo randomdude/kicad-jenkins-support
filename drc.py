@@ -7,7 +7,7 @@ app = Application().start("c:\Program Files\KiCad\\bin\pcbnew.exe")
 
 app.Pcbnew.menu_select("File->Open")
 
-app.OpenBoardFile.type_keys(os.cwd + "\\atxbreakout.kicad_pcb", with_spaces = True)
+app.OpenBoardFile.type_keys(os.getcwd() + "\\atxbreakout.kicad_pcb", with_spaces = True)
 #time.sleep(0.1)
 app.OpenBoardFile.Open.click()
 
