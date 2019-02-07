@@ -40,7 +40,10 @@ while True:
 
 while True:
 	try:
-		mainWindow.menu_select("Tools->DRC")
+		try:
+			mainWindow.menu_select("Tools->DRC")
+		except MatchError:
+			mainWindow.menu_select("Inspect->Design Rules Checker")
 		break
 	except pywinauto.base_wrapper.ElementNotEnabled:
 		time.sleep(1)
