@@ -49,12 +49,15 @@ while True:
 		time.sleep(1)
 		print 'Waiting for menu option to be enabled'
 
+
+app.Drc_Control.child_window(best_match="Refill all zones before performing DRC").check()
+
 try:
-	app.Drc_Control.child_window(best_match="Min uVia sizeEdit2").type_keys("C:\\code\\atxbreakout\\report.txt")
+	app.Drc_Control.child_window(best_match="Create Report File:Edit").type_keys(os.getcwd() + "\\report.txt")
 except pywinauto.base_wrapper.ElementNotEnabled:
 	# Enable the saving of reports and try again
-	app.Drc_Control.child_window(best_match="Create Report FileCheckBox").click()
-	app.Drc_Control.child_window(best_match="Min uVia sizeEdit2").type_keys("C:\\code\\atxbreakout\\report.txt")
+	app.Drc_Control.child_window(best_match="CreateReportFileCheckBox").click()
+	app.Drc_Control.child_window(best_match="Create Report File:Edit").type_keys(os.getcwd() + "\\report.txt")
 
 #app.Drc_Control.child_window(best_match="Enter the report filename").Save.click()
 app.Drc_Control.Start_DRC.click()
