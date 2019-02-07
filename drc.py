@@ -13,13 +13,15 @@ app.OpenBoardFile.Open.click()
 
 while True:
 	try:
-		if app.OpenBoardFile.exists():
-			time.sleep(1)
+		if app.OpenBoardFile.exists(timeout=None, retry_interval=None):
+#			time.sleep(1)
+			print 'Retying file open dialog completion'
 			app.OpenBoardFile.Open.click()
+			continue
+		else:
 			break
-	except pywintypes.error:
-		print 'Retying file open dialog completion'
-		time.sleep(1)
+	except pywintypes.error as e:
+		print e
 		continue
 
 print "Open complete"
