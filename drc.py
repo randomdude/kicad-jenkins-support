@@ -1,4 +1,3 @@
-import pywintypes
 import pywinauto
 from pywinauto.application import Application
 import time
