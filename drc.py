@@ -83,20 +83,25 @@ while True:
 
 
 print "setting DRC window options"
-app.Drc_Control.child_window(best_match="Refill all zones before performing DRC").check()
-# Set the output path. We must use .check_by_click here, since otherwise pcbnew doesn't enable the textbox.
-checkbox = app.Drc_Control.child_window(best_match="CreateReportFileCheckBox")
-reportFileBox = app.Drc_Control.child_window(best_match="Create Report File:Edit")
-
 while True:
-	if checkbox.get_check_state() == 0:
-		checkbox.check_by_click()
-		try:
-			reportFileBox.wait("enabled")
-			break
-		except pywinauto.timings.TimeoutError:
-			print "retrying checkbox checking"
-			continue
+	try:
+		app.Drc_Control.child_window(best_match="Refill all zones before performing DRC").check()
+		# Set the output path. We must use .check_by_click here, since otherwise pcbnew doesn't enable the textbox.
+		checkbox = app.Drc_Control.child_window(best_match="CreateReportFileCheckBox")
+		reportFileBox = app.Drc_Control.child_window(best_match="Create Report File:Edit")
+
+		while True:
+			if checkbox.get_check_state() == 0:
+				checkbox.check_by_click()
+				try:
+					reportFileBox.wait("enabled")
+					break
+				except pywinauto.timings.TimeoutError:
+					print "retrying checkbox checking"
+					continue
+		break
+	except pywintypes.error:
+		pass
 
 reportFileBox.type_keys(os.getcwd() + "\\report.txt")
 
