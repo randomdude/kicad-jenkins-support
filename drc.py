@@ -3,6 +3,14 @@ import pywintypes
 import os
 import sys
 import time
+import glob
+
+pcbfiles = glob.glob("*.kicad_pcb")
+if len(pcbfiles) == 0:
+	raise Exception("No PCBs found")
+elif len(pcbfiles) >1:
+	raise Exception("Multiple PCBs found; we only support one for now")
+pcbfile = os.getcwd() + pcbfiles[0]
 
 print "Starting pcbnew"
 app = pywinauto.application.Application().start("c:\\Program Files\\KiCad\\bin\\pcbnew.exe")
@@ -26,7 +34,7 @@ while True:
 print "Opening file"
 app.Pcbnew.menu_select("File->Open")
 
-app.OpenBoardFile.type_keys(os.getcwd() + "\\atxbreakout.kicad_pcb", with_spaces = True)
+app.OpenBoardFile.type_keys(pcbfile, with_spaces = True)
 app.OpenBoardFile.Open.click()
 
 while True:
