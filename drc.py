@@ -171,7 +171,7 @@ errorstatus = 0
 with open(os.getcwd() + "\\report.txt", "r") as f:
 	drclines = f.readlines()
 	errorstatuslines = filter(lambda x: x.find("** Found ") == 0, drclines)
-	errorcounts = filter(lambda x: int(x.split()[2]), errorstatuslines)
+	errorcounts = map(lambda x: int(x.split()[2]), errorstatuslines)
 	if len(errorcounts) != 2:
 		print "didn't find two '** Found' lines in report"
 		errorstatus = 1
