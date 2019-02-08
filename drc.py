@@ -10,7 +10,7 @@ if len(pcbfiles) == 0:
 	raise Exception("No PCBs found")
 elif len(pcbfiles) >1:
 	raise Exception("Multiple PCBs found; we only support one for now")
-pcbfile = pcbfiles[0]
+pcbfile = os.path.join( os.getcwd(), pcbfiles[0])
 
 print "Starting pcbnew"
 app = pywinauto.application.Application().start("c:\\Program Files\\KiCad\\bin\\pcbnew.exe")
