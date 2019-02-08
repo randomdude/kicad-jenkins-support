@@ -32,7 +32,7 @@ app.OpenBoardFile.Open.click()
 while True:
 	try:
 		if app.OpenBoardFile.exists(timeout=None, retry_interval=None):
-			print 'Retying file open dialog completion'
+			print 'Retrying file open dialog completion'
 			app.OpenBoardFile.Open.click()
 			continue
 		else:
@@ -64,23 +64,16 @@ print "File load complete, waiting for DRC menu to be enabled"
 while True:
 	try:
 		try:
-			mainWindow.menu_select("Tools->DRC")
-		except pywinauto.MatchError:
-			mainWindow.menu_select("Inspect->Design Rules Checker")
-		break
-	except pywinauto.base_wrapper.ElementNotEnabled:
-		time.sleep(1)
-		print 'Waiting for menu option to be enabled'
-
-
-print "Waiting for DRC window to appear"
-while True: 
-	try:
-		if app.Drc_Control.exists(timeout=1, retry_interval=None):
-			break
+			if app.Drc_Control.wait("exists"):
+				break
+			print "Still waiting for DRC menu.."
+		except pywinauto.timings.TimeoutError:
+			try:
+				mainWindow.menu_select("Inspect->Design Rules Checker")
+			except pywinauto.base_wrapper.ElementNotEnabled:
+				print 'Waiting for menu option to be enabled'
 	except pywintypes.error:
 		pass
-
 
 print "setting DRC window options"
 while True:
