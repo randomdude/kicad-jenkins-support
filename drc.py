@@ -103,8 +103,12 @@ print "Doing DRC"
 app.Drc_Control.Start_DRC.click()
 
 # Wait for, and accept, the 'are you sure you want to refill the copper zones' dialog
-app.Confirmation.wait("exists")
-app.Confirmation.yes.click()
+try:
+	app.Confirmation.wait("exists")
+	app.Confirmation.yes.click()
+except pywinauto.timings.TimeoutError:
+	# ok nevermind
+	pass
 
 # My version of KiCad (5.0.2-1) throws an assert failure when generating DRC and outputting to a report file (!!)
 # the assert is in CallStrftime, and gives us a yes/no/cancel dialog, with 'no' being the option to ignore the 
