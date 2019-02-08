@@ -46,7 +46,7 @@ for boardfile in glob.glob("*.kicad_pcb"):
 	drlwriter.SetOptions( mirror, minimalHeader, offset, mergeNPTH )
 
 	metricFmt = True
-	drlwriter.SetFormat( metricFmt, pcbnew.EXCELLON_WRITER.SUPPRESS_LEADING)
+	drlwriter.SetFormat( metricFmt, pcbnew.EXCELLON_WRITER.DECIMAL_FORMAT)
 
 	genDrl = True
 	genMap = False
