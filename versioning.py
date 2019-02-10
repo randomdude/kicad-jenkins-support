@@ -6,7 +6,7 @@ if len(sys.argv) != 3:
 	print "Usage: %s [git hash] [build number]" % (sys.argv[0])
 	sys.exit(-1)
 
-githash     = "%05d" % int(sys.argv[1])
+githash     = "%05X" % int(sys.argv[1], 16)
 buildnumber = "%03d" % int(sys.argv[2])
 
 pcbfiles = glob.glob("*.kicad_pcb")
