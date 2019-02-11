@@ -2,10 +2,7 @@ def build(mainRepoPath) {
     bat script: '''choco install -y git python2 kicad imagemagick'''
     bat script: '''\"c:\\Python27\\python.exe" -m pip install pywinauto'''
 
-    mainCheckout = checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '']], submoduleCfg: [], userRemoteConfigs: [[url: '${mainRepoPath}']]])
-    checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'kicad-jenkins-support']], submoduleCfg: [], userRemoteConfigs: [[url: 'http://gitea/aliz/kicad-jenkins-support']]])
-    
-    bat script: 'copy kicad-jenkins-support\\* .'
+    mainCheckout = checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '']], submoduleCfg: [], userRemoteConfigs: [[url: "${mainRepoPath}"]]])
     
     buildNo = mainCheckout.GIT_COMMIT.substring(0, 5)
     bat script: "\"c:\\Program Files\\KiCad\\bin\\python.exe\" versioning.py ${buildNo} ${BUILD_NUMBER}"
