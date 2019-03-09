@@ -25,6 +25,11 @@ while True:
 			app.top_window().Yes.click();
 			app.top_window().wait("exists", timeout = 5)
 			continue
+		# On first run, we might see this dialog asking if we want to use hardware acceleration for graphics.
+		if app.top_window().child_window(best_match="Enable Graphics Acceleration").exists():
+			app.top_window().NoThanks.click();
+			app.top_window().wait("exists", timeout = 5)
+			continue
 
 		break
 
