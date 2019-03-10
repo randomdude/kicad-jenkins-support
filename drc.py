@@ -31,7 +31,7 @@ while True:
 			app.top_window().wait("exists", timeout = 5)
 			continue
 		mainWindowList = filter(lambda x: (x.window_text().find("Pcbnew") ==0), app.windows())
-		if len(mainWindowList != 0):
+		if len(mainWindowList) != 0:
 			mainWindow = mainWindowList[0]
 			break
 
