@@ -30,14 +30,16 @@ while True:
 			app.top_window().NoThanks.click();
 			app.top_window().wait("exists", timeout = 5)
 			continue
-
-		break
+		mainWindowList = filter(lambda x: (x.window_text().find("Pcbnew") ==0), app.windows())
+		if len(mainWindowList != 0):
+			mainWindow = mainWindowList[0]
+			break
 
 	except RuntimeError:
 		pass
 
 print "Opening file"
-app.Pcbnew.menu_select("File->Open")
+mainWindow.menu_select("File->Open")
 
 app.OpenBoardFile.type_keys(pcbfile, with_spaces = True)
 app.OpenBoardFile.Open.click()
@@ -54,25 +56,7 @@ while True:
 		print e
 		continue
 
-print "Open complete"
-
-while True:
-	try:
-		mainWindow = filter(lambda x: (x.window_text().find("Pcbnew") ==0), app.windows())
-		if len(mainWindow) != 1:
-			raise Exception()
-		mainWindow = mainWindow[0]
-		break
-	except AttributeError:
-		print "Waiting for load to complete"
-		time.sleep(1)
-		continue
-	except pywinauto.controls.hwndwrapper.InvalidWindowHandle:
-		print "Waiting for load to complete"
-		time.sleep(1)
-		continue
-
-print "File load complete, waiting for DRC menu to be enabled"
+print "Open complete, waiting for DRC menu to be enabled"
 
 while True:
 	try:
