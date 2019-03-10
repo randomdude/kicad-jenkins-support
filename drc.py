@@ -30,7 +30,7 @@ while True:
 			app.top_window().NoThanks.click();
 			app.top_window().wait("exists", timeout = 5)
 			continue
-		mainWindow = app.windows(title="Pcbnew")
+		mainWindow = app.window(title="Pcbnew")
 		if mainWindow.exists() != 0:
 			break
 
