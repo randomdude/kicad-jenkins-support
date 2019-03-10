@@ -2,7 +2,8 @@ def build(mainRepoPath) {
     bat script: '''choco install -y git python2 kicad imagemagick'''
     bat script: '''\"c:\\Python27\\python.exe" -m pip install pywinauto'''
 
-    mainCheckout = checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: '']], submoduleCfg: [], userRemoteConfigs: [[url: "${mainRepoPath}"]]])
+    mainCheckout = checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'mainCheckout']], submoduleCfg: [], userRemoteConfigs: [[url: "${mainRepoPath}"]]])
+    bat script: 'copy mainCheckout\\* .'
     
     buildNo = mainCheckout.GIT_COMMIT.substring(0, 5)
     bat script: "\"c:\\Program Files\\KiCad\\bin\\python.exe\" versioning.py ${buildNo} ${BUILD_NUMBER}"
@@ -22,6 +23,5 @@ def build(mainRepoPath) {
     if (drcstatus != 0)
         error "DRC reported failure"
 }
-
 
 return this
