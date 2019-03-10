@@ -30,9 +30,8 @@ while True:
 			app.top_window().NoThanks.click();
 			app.top_window().wait("exists", timeout = 5)
 			continue
-		mainWindowList = filter(lambda x: (x.window_text().find("Pcbnew") ==0), app.windows())
-		if len(mainWindowList) != 0:
-			mainWindow = mainWindowList[0]
+		mainWindow = app.windows(title="Pcbnew")
+		if mainWindow.exists() != 0:
 			break
 
 	except RuntimeError:
@@ -56,7 +55,29 @@ while True:
 		print e
 		continue
 
-print "Open complete, waiting for DRC menu to be enabled"
+#
+# Once we open the file, we must search for the main window again. This is because it will
+# hanve changed its caption from 'Pcbnew' to 'Pcbnew - <name of file we opened>'.
+#
+print "Open complete, finding main window"
+
+while True:
+	try:
+		mainWindow = filter(lambda x: (x.window_text().find("Pcbnew") ==0), app.windows())
+		if len(mainWindow) != 1:
+			raise Exception()
+		mainWindow = mainWindow[0]
+		break
+	except AttributeError:
+		print "Waiting for load to complete"
+		time.sleep(1)
+		continue
+	except pywinauto.controls.hwndwrapper.InvalidWindowHandle:
+		print "Waiting for load to complete"
+		time.sleep(1)
+		continue
+
+print "waiting for DRC menu to be enabled"
 
 while True:
 	try:
