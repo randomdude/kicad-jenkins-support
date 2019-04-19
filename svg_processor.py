@@ -62,6 +62,8 @@ class SvgProcessor(object):
             wrapper.setAttribute(k,v)
 
         for child in parent.getElementsByTagName('g'):
+            if child.parentElement != parent:
+                continue
             parent.removeChild(child)
             wrapper.appendChild(child)
 
@@ -69,6 +71,8 @@ class SvgProcessor(object):
 
     @staticmethod
     def _apply_transform(node, values):
+        if not 'style' in node.attributes.keys():
+            return
         original_style = node.attributes['style'].value
         for (k,v) in values.items():
             escaped_key = re.escape(k)
