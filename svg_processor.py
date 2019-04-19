@@ -62,7 +62,7 @@ class SvgProcessor(object):
             wrapper.setAttribute(k,v)
 
         for child in parent.getElementsByTagName('g'):
-            if child.parentElement != parent:
+            if child.parentNode != parent:
                 continue
             parent.removeChild(child)
             wrapper.appendChild(child)
