@@ -92,6 +92,8 @@ while True:
 				print 'Waiting for menu option to be enabled'
 	except pywintypes.error:
 		pass
+	except RuntimeError:
+		pass
 
 print "setting DRC window options"
 while True:
@@ -118,40 +120,52 @@ reportFileBox.type_keys(os.getcwd() + "\\report.txt")
 
 # And start the DRC.
 print "Doing DRC"
-app.Drc_Control.Start_DRC.click()
+# 5.1.0_1 renames 'start DRC' to 'run DRC'.
+if app.Drc_Control.Run_DRC.exists():
+	app.Drc_Control.Run_DRC.click()
+elif app.Drc_Control.Start_DRC.exists():
+	app.Drc_Control.Start_DRC.click()
+else:
+	raise Exception("Can't find button to start DRC")
 
 # Wait for, and accept, the 'are you sure you want to refill the copper zones' dialog
-try:
-	app.Confirmation.wait("exists")
-	app.Confirmation.yes.click()
-except pywinauto.timings.TimeoutError:
-	# ok nevermind
-	pass
-
-# My version of KiCad (5.0.2-1) throws an assert failure when generating DRC and outputting to a report file (!!)
-# the assert is in CallStrftime, and gives us a yes/no/cancel dialog, with 'no' being the option to ignore the 
-# failure. Ignoring the failure seems safe - it means the date is not printed in the report but has no other effects
-# (so far!) so I'm just bodging this and doing that for now.
-# The assertion failure:
-#
-# ../wxWidgets-3.0.4/src/common/datetime.cpp(298): assert "Assert failure" failed in CallStrftime(): strftime() failed
-# Do you want to stop the program?\nYou can also choose [Cancel] to suppress further warnings
-#
-#
 while True:
 	try:
-		app.wxWidgetsDebugAlert.wait("exists")
-		app.wxWidgetsDebugAlert.No.click()
+		app.Confirmation.wait("exists")
+		app.Confirmation.yes.click()
 		break
+	except pywinauto.timings.TimeoutError:
+		# ok nevermind
+		break
+	except pywintypes.error as e:
+		continue
+
+while True:
+	# Wait for DRC to complete.
+
+	# My version of KiCad (5.0.2-1) throws an assert failure when generating DRC and outputting to a report file (!!)
+	# the assert is in CallStrftime, and gives us a yes/no/cancel dialog, with 'no' being the option to ignore the 
+	# failure. Ignoring the failure seems safe - it means the date is not printed in the report but has no other effects
+	# (so far!) so I'm just bodging this and doing that for now.
+	# The assertion failure:
+	#
+	# ../wxWidgets-3.0.4/src/common/datetime.cpp(298): assert "Assert failure" failed in CallStrftime(): strftime() failed
+	# Do you want to stop the program?\nYou can also choose [Cancel] to suppress further warnings
+	#
+	#
+	try:
+		if app.wxWidgetsDebugAlert.exists():
+			app.wxWidgetsDebugAlert.No.click()
+		# Is the DRC complete yet?
+		if app.Disk_File_Report_Completed.exists():
+			print "DRC complete"
+			break
 	except pywintypes.error:
 		continue
 	except pywinauto.timings.TimeoutError:
-		# No assert failure happened. yay.
-		break
+		continue
 
-# Wait for DRC to complete, and then close the completion dialog
-app.Disk_File_Report_Completed.wait("exists")
-print "DRC complete"
+# Close the DRC completion dialog
 app.Disk_File_Report_Completed.close()
 
 # Now we can close the DRC window
@@ -169,9 +183,14 @@ while app.is_process_running():
 			mainWindow.close(wait_time = 1)
 	except pywinauto.timings.TimeoutError:
 		try:
+			print dir(app)
 			if app.Dialog0.ExitWithoutSave.exists():
-				print "Closing 'save changes' dialog"
+				print "Closing 'save changes' dialog via 'exit without save'"
 				app.Dialog0.ExitWithoutSave.click()
+				continue
+			if app.Dialog0.DiscardChanges.exists():
+				print "Closing 'save changes' dialog via 'discard changes'"
+				app.Dialog0.DiscardChanges.click()
 				continue
 			elif app.wxWidgetsDebugAlert.exists():
 				print "Closing 'assertion failure' dialog"
