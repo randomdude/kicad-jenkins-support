@@ -30,12 +30,8 @@ while True:
 			app.top_window().wait("exists", timeout = 5)
 			continue
 		# On first run, we might see this dialog asking if we want to use hardware acceleration for graphics.
-		hwacceldlgs = filter(lambda x: x.children(best_match="Enable Graphics Acceleration"), app.windows())
-		for dlg in hwacceldlgs:
-			dlg.type_keys('N')
-		hwacceldlgs = filter(lambda x: x.children(best_match="Enable Acceleration"), app.windows())
-		for dlg in hwacceldlgs:
-			dlg.type_keys('N')
+		if app.top_window().child_window(best_match="Enable Acceleration").exists() or app.top_window().child_window(best_match="Enable Graphics Acceleration").exists() :
+			app.top_window().type_keys('N')
 
 		mainWindow = app.window(title="Pcbnew")
 		if mainWindow.exists() != 0:
