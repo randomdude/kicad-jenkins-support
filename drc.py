@@ -25,11 +25,18 @@ while True:
 			app.top_window().Yes.click();
 			app.top_window().wait("exists", timeout = 5)
 			continue
-		# On first run, we might see this dialog asking if we want to use hardware acceleration for graphics.
-		if app.top_window().child_window(best_match="Enable Graphics Acceleration").exists():
-			app.top_window().NoThanks.click();
+		if app.top_window().child_window(best_match="Configure global footprint library").exists():
+			app.top_window().OK.click();
 			app.top_window().wait("exists", timeout = 5)
 			continue
+		# On first run, we might see this dialog asking if we want to use hardware acceleration for graphics.
+		hwacceldlgs = filter(lambda x: x.children(best_match="Enable Graphics Acceleration"), app.windows())
+		for dlg in hwacceldlgs:
+			dlg.type_keys('N')
+		hwacceldlgs = filter(lambda x: x.children(best_match="Enable Acceleration"), app.windows())
+		for dlg in hwacceldlgs:
+			dlg.type_keys('N')
+
 		mainWindow = app.window(title="Pcbnew")
 		if mainWindow.exists() != 0:
 			break
@@ -132,7 +139,12 @@ else:
 while True:
 	try:
 		app.Confirmation.wait("exists")
-		app.Confirmation.yes.click()
+		if app.Confirmation.yes.exists():
+			app.Confirmation.yes.click()
+		elif app.Confirmation.Refill.exists():
+			app.Confirmation.Refill.click()
+		else:
+			raise Exception("Can't find refill OK button")
 		break
 	except pywinauto.timings.TimeoutError:
 		# ok nevermind
