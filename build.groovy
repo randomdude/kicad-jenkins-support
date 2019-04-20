@@ -16,7 +16,7 @@ def build(mainRepoPath) {
     gerberFilename = "${JOB_NAME}_${BUILD_NUMBER}.zip"
     zip zipFile: gerberFilename, archive: false, dir: 'generated'
     archiveArtifacts gerberFilename
-    bat label: '', returnStatus: true, script: 'del ${gerberFilename}'
+    bat label: '', returnStatus: true, script: "del ${gerberFilename}"
  
     def drcstatus = bat returnStatus: true, script: '''\"c:\\python27\\python.exe\" drc.py'''
     archiveArtifacts 'report.txt'
