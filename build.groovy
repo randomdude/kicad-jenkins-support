@@ -13,10 +13,10 @@ def build(mainRepoPath) {
     archiveArtifacts artifacts: '*.png', caseSensitive: false, defaultExcludes: false
 
     bat script: '''\"c:\\Program Files\\KiCad\\bin\\python.exe\" export_gerber.py'''
-    bat label: '', returnStatus: true, script: 'del gerbers.zip'
     gerberFilename = "${JOB_NAME}_${BUILD_NUMBER}.zip"
     zip zipFile: gerberFilename, archive: false, dir: 'generated'
     archiveArtifacts gerberFilename
+    bat label: '', returnStatus: true, script: 'del ${gerberFilename}'
  
     def drcstatus = bat returnStatus: true, script: '''\"c:\\python27\\python.exe\" drc.py'''
     archiveArtifacts 'report.txt'
