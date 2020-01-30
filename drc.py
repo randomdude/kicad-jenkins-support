@@ -34,7 +34,7 @@ while True:
 			# If there's a 'no thanks' button, click it. Otherwise, there's some legacy behavior on old KiCard versions
 			# which we handle by just hitting the 'n' key.
 			if app.top_window().NoThanks.exists():
-				app.top_window().NoThanks.click():
+				app.top_window().NoThanks.click()
 			else:
 				app.top_window().type_keys('N')
 			continue
