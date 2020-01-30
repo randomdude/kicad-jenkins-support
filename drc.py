@@ -31,7 +31,13 @@ while True:
 			continue
 		# On first run, we might see this dialog asking if we want to use hardware acceleration for graphics.
 		if app.top_window().child_window(best_match="Enable Acceleration").exists() or app.top_window().child_window(best_match="Enable Graphics Acceleration").exists() :
-			app.top_window().type_keys('N')
+			# If there's a 'no thanks' button, click it. Otherwise, there's some legacy behavior on old KiCard versions
+			# which we handle by just hitting the 'n' key.
+			if app.top_window().NoThanks.exists():
+				app.top_window().NoThanks.click():
+			else:
+				app.top_window().type_keys('N')
+			continue
 
 		mainWindow = app.window(title="Pcbnew")
 		if mainWindow.exists() != 0:
