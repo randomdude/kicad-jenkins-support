@@ -233,7 +233,7 @@ with open(os.getcwd() + "\\report.txt", "r") as f:
 	resStr = resStr + "<testcase classname=\"kicad\" name=\"DRC\">"
 	if errorstatus == 1:
 		resStr = resStr + "<failure type=\"DRC found errors\"/>"
-		for drcFailure in filter(lambda x: x.strip().startsWith("@"), drclines):
+		for drcFailure in filter(lambda x: x.strip().find("@") == 0, drclines):
 			resStr = resStr + "<failure type=\"" + drcFailure.strip() + "\"/>"
 	resStr = resStr + "</testcase>"
 resStr = resStr + "</testsuites>"
