@@ -229,5 +229,14 @@ with open(os.getcwd() + "\\report.txt", "r") as f:
 	elif (errorcounts[0] != 0) | (errorcounts[1] != 0):
 		errorstatus = 1
 
-print "Return status: %d" % errorstatus
-sys.exit(errorstatus)
+	resStr = "<testsuites>"
+	resStr = resStr + "<testcase classname=\"kicad\" name=\"DRC\">"
+	if errorstatus = 1:
+		resStr = resStr + "<failure type=\"DRC found errors\"/>"
+		for drcFailure in filter(lambda x: x.strip().startsWith("@"), drclines):
+			resStr = resStr + "<failure type=\"" + drcFailure.strip() + "\"/>"
+	resStr = resStr + "</testcase>"
+resStr = resStr + "</testsuites>"
+
+with open("drc.xml", "w") as f:
+	f.write(resStr)
