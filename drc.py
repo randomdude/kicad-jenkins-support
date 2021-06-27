@@ -234,7 +234,7 @@ with open(os.getcwd() + "\\report.txt", "r") as f:
 	if errorstatus == 1:
 		resStr = resStr + "<failure type=\"DRC found errors\">"
 		for drcFailure in filter(lambda x: x.strip().find("@") == 0, drclines):
-			resStr = resStr + drcFailure.strip() + "\n
+			resStr = resStr + drcFailure.strip() + "\n"
 		resStr = resStr + "</failure>"
 	resStr = resStr + "</testcase>"
 resStr = resStr + "</testsuites>"
