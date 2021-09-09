@@ -5,18 +5,46 @@ import sys
 import time
 import glob
 
-pcbfiles = glob.glob("*.kicad_pcb")
-if len(pcbfiles) == 0:
-	raise Exception("No PCBs found")
+# It's a good idea to flush stdout so that Jenkins gets a better idea of progress.
+def printWithFlush(toWrite):
+	sys.stdout.write(toWrite)
+	if toWrite[-1] != '\n':
+		sys.stdout.write('\n')
+	sys.stdout.flush()
 
-results = []
-for pcbfilefriendlyname in pcbfiles:
-	pcbfile = os.path.join( os.getcwd(), pcbfilefriendlyname)
+def main():
+	# Enumerate PCB files, processing each in turn...
+	pcbfiles = glob.glob("*.kicad_pcb")
+	if len(pcbfiles) == 0:
+		raise Exception("No PCBs found")
+	results = []
+	for pcbfilefriendlyname in pcbfiles:
+		pcbfile = os.path.join(os.getcwd(), pcbfilefriendlyname)
+		results.append(doDRC(pcbfile))
 
-	print "Starting pcbnew"
+	# .. and write out our result XML.
+	resLines = []
+	resLines.append("<testsuites>")
+	for resultInfo in results:
+		resLines.append("\t<testcase classname=\"kicad\" name=\"DRC_"  + resultInfo['filename'] +"\">")
+		if resultInfo['errorStatus'] == 1:
+			resLines.append("\t\t<failure type=\"DRC found errors\">")
+			for drcFailure in filter(lambda x: x.strip().find("@") == 0, resultInfo['drclines']):
+				resLines.append("\t\t\t" + drcFailure.strip())
+			resLines.append("\t\t</failure>")
+		resLines.append("\t</testcase>")
+	resLines.append("</testsuites>")
+
+	with open("drc.xml", "w") as f:
+		f.write("\n".join(resLines))
+
+def doDRC(pcbfile):
+	pcbfilefriendlyname = os.path.basename(pcbfile)
+
+	printWithFlush("Starting pcbnew")
 	app = pywinauto.application.Application().start("c:\\Program Files\\KiCad\\bin\\pcbnew.exe")
 
-	print "Awaiting main window"
+	printWithFlush("Awaiting main window")
 	while True:
 		try:
 			app.top_window().wait("exists", timeout = 5)
@@ -47,7 +75,7 @@ for pcbfilefriendlyname in pcbfiles:
 		except RuntimeError:
 			pass
 
-	print "Opening file"
+	printWithFlush("Opening file")
 	mainWindow.menu_select("File->Open")
 
 	app.OpenBoardFile.type_keys(pcbfile, with_spaces = True)
@@ -56,20 +84,20 @@ for pcbfilefriendlyname in pcbfiles:
 	while True:
 		try:
 			if app.OpenBoardFile.exists(timeout=None, retry_interval=None):
-				print 'Retrying file open dialog completion'
+				printWithFlush( 'Retrying file open dialog completion')
 				app.OpenBoardFile.Open.click()
 				continue
 			else:
 				break
 		except Exception as e:
-			print e
+			printWithFlush( e)
 			continue
 
 	#
 	# Once we open the file, we must search for the main window again. This is because it will
 	# hanve changed its caption from 'Pcbnew' to 'Pcbnew - <name of file we opened>'.
 	#
-	print "Open complete, finding main window"
+	printWithFlush("Open complete, finding main window")
 
 	while True:
 		try:
@@ -79,33 +107,33 @@ for pcbfilefriendlyname in pcbfiles:
 			mainWindow = mainWindow[0]
 			break
 		except AttributeError:
-			print "Waiting for load to complete"
+			printWithFlush("Waiting for load to complete")
 			time.sleep(1)
 			continue
 		except pywinauto.controls.hwndwrapper.InvalidWindowHandle:
-			print "Waiting for load to complete"
+			printWithFlush("Waiting for load to complete")
 			time.sleep(1)
 			continue
 
-	print "waiting for DRC menu to be enabled"
+	printWithFlush("waiting for DRC menu to be enabled")
 
 	while True:
 		try:
 			try:
 				if app.Drc_Control.wait("exists", timeout=0.5):
 					break
-				print "Still waiting for DRC menu.."
+				printWithFlush("Still waiting for DRC menu..")
 			except pywinauto.timings.TimeoutError:
 				try:
 					mainWindow.menu_select("Inspect->Design Rules Checker")
 				except pywinauto.base_wrapper.ElementNotEnabled:
-					print 'Waiting for menu option to be enabled'
+					printWithFlush( 'Waiting for menu option to be enabled')
 		except pywintypes.error:
 			pass
 		except RuntimeError:
 			pass
 
-	print "setting DRC window options"
+	printWithFlush("setting DRC window options")
 	while True:
 		try:
 			app.Drc_Control.child_window(best_match="Refill all zones before performing DRC").check()
@@ -120,7 +148,7 @@ for pcbfilefriendlyname in pcbfiles:
 						reportFileBox.wait("enabled")
 						break
 					except pywinauto.timings.TimeoutError:
-						print "retrying checkbox checking"
+						printWithFlush("retrying checkbox checking")
 						continue
 			break
 		except pywintypes.error:
@@ -129,7 +157,7 @@ for pcbfilefriendlyname in pcbfiles:
 	reportFileBox.type_keys(os.getcwd() + "\\report.txt")
 
 	# And start the DRC.
-	print "Doing DRC"
+	printWithFlush("Doing DRC")
 	# 5.1.0_1 renames 'start DRC' to 'run DRC'.
 	if app.Drc_Control.Run_DRC.exists():
 		app.Drc_Control.Run_DRC.click()
@@ -175,7 +203,7 @@ for pcbfilefriendlyname in pcbfiles:
 				app.wxWidgetsDebugAlert.No.click()
 			# Is the DRC complete yet?
 			if app.Disk_File_Report_Completed.exists(timeout=0.5):
-				print "DRC complete"
+				printWithFlush("DRC complete")
 				break
 		except pywintypes.error:
 			pass
@@ -192,7 +220,7 @@ for pcbfilefriendlyname in pcbfiles:
 	# and close the main application. If pcbnew shows the 'do you want to save your changes' dialog, this will time out,
 	# so hit 'exit without save' and try again if we see a timeout. Also, sometimes we may see an assertion failure related
 	# to opengl, so cancel that too if we see it:
-	print "closing pcbnew.."
+	printWithFlush("closing pcbnew..")
 	retryClose = True
 	while app.is_process_running():
 		try:
@@ -201,24 +229,23 @@ for pcbfilefriendlyname in pcbfiles:
 				mainWindow.close(wait_time = 1)
 		except pywinauto.timings.TimeoutError:
 			try:
-				print dir(app)
 				if app.Dialog0.ExitWithoutSave.exists():
-					print "Closing 'save changes' dialog via 'exit without save'"
+					printWithFlush("Closing 'save changes' dialog via 'exit without save'")
 					app.Dialog0.ExitWithoutSave.click()
 					continue
 				if app.Dialog0.DiscardChanges.exists():
-					print "Closing 'save changes' dialog via 'discard changes'"
+					printWithFlush("Closing 'save changes' dialog via 'discard changes'")
 					app.Dialog0.DiscardChanges.click()
 					continue
 				elif app.wxWidgetsDebugAlert.exists():
-					print "Closing 'assertion failure' dialog"
-					print app.wxWidgetsDebugAlert.dump_tree()
+					printWithFlush("Closing 'assertion failure' dialog")
+					printWithFlush( app.wxWidgetsDebugAlert.dump_tree())
 					app.wxWidgetsDebugAlert.Yes.click()
 					continue
 				else:
 					raise
 			except Exception as e:
-				print "Exception - " + str(e)
+				printWithFlush("Exception - " + str(e))
 
 	# Now read the DRC report, and see if any errors were detected.
 	errorstatus = 0
@@ -227,26 +254,13 @@ for pcbfilefriendlyname in pcbfiles:
 		errorstatuslines = filter(lambda x: x.find("** Found ") == 0, drclines)
 		errorcounts = map(lambda x: int(x.split()[2]), errorstatuslines)
 		if len(errorcounts) != 2:
-			print "didn't find two '** Found' lines in report"
+			printWithFlush("didn't find two '** Found' lines in report")
 			errorstatus = 1
 		elif (errorcounts[0] != 0) | (errorcounts[1] != 0):
 			errorstatus = 1
 	
 	# Store the result in our dict and we're done.
-	results.append({ 'filename': pcbfilefriendlyname, 'errorStatus': errorstatus, 'drclines': drclines })
+	return { 'filename': pcbfilefriendlyname, 'errorStatus': errorstatus, 'drclines': drclines }
 
-# Now it's time to write out our result XML.
-resLines = []
-resLines.append("<testsuites>")
-for resultInfo in results:
-	resLines.append("\t<testcase classname=\"kicad\" name=\"DRC_"  + resultInfo['filename'] +"\">")
-	if resultInfo['errorStatus'] == 1:
-		resLines.append("\t\t<failure type=\"DRC found errors\">")
-		for drcFailure in filter(lambda x: x.strip().find("@") == 0, resultInfo['drclines']):
-			resLines.append("\t\t\t" + drcFailure.strip())
-		resLines.append("\t\t</failure>")
-	resLines.append("\t</testcase>")
-resLines.append("</testsuites>")
-
-with open("drc.xml", "w") as f:
-	f.write("\n".join(resLines))
+if __name__ == "__main__":
+	main()
