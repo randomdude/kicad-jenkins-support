@@ -160,8 +160,10 @@ def doDRC(pcbfile):
 	printWithFlush("Doing DRC")
 	# 5.1.0_1 renames 'start DRC' to 'run DRC'.
 	if app.Drc_Control.Run_DRC.exists():
+		app.Drc_Control.Run_DRC.wait("enabled")
 		app.Drc_Control.Run_DRC.click()
 	elif app.Drc_Control.Start_DRC.exists():
+		app.Drc_Control.Start_DRC.wait("enabled")
 		app.Drc_Control.Start_DRC.click()
 	else:
 		raise Exception("Can't find button to start DRC")
@@ -224,28 +226,23 @@ def doDRC(pcbfile):
 	retryClose = True
 	while app.is_process_running():
 		try:
-			if retryClose:
-				retryClose = False
+			if app.Dialog0.ExitWithoutSave.exists():
+				printWithFlush("Closing 'save changes' dialog via 'exit without save'")
+				app.Dialog0.ExitWithoutSave.click()
+				continue
+			if app.Dialog0.DiscardChanges.exists():
+				printWithFlush("Closing 'save changes' dialog via 'discard changes'")
+				app.Dialog0.DiscardChanges.click()
+				continue
+			elif app.wxWidgetsDebugAlert.exists():
+				printWithFlush("Closing 'assertion failure' dialog")
+				printWithFlush( app.wxWidgetsDebugAlert.dump_tree())
+				app.wxWidgetsDebugAlert.Yes.click()
+				continue
+			else:
 				mainWindow.close(wait_time = 1)
-		except pywinauto.timings.TimeoutError:
-			try:
-				if app.Dialog0.ExitWithoutSave.exists():
-					printWithFlush("Closing 'save changes' dialog via 'exit without save'")
-					app.Dialog0.ExitWithoutSave.click()
-					continue
-				if app.Dialog0.DiscardChanges.exists():
-					printWithFlush("Closing 'save changes' dialog via 'discard changes'")
-					app.Dialog0.DiscardChanges.click()
-					continue
-				elif app.wxWidgetsDebugAlert.exists():
-					printWithFlush("Closing 'assertion failure' dialog")
-					printWithFlush( app.wxWidgetsDebugAlert.dump_tree())
-					app.wxWidgetsDebugAlert.Yes.click()
-					continue
-				else:
-					raise
-			except Exception as e:
-				printWithFlush("Exception - " + str(e))
+		except Exception as e:
+			printWithFlush("Exception closing pcbnew - " + str(e))
 
 	# Now read the DRC report, and see if any errors were detected.
 	errorstatus = 0

@@ -20,7 +20,6 @@ def build(mainRepoPath, boardDir = '.') {
  
     def drcstatus = bat returnStatus: true, script: '''\"c:\\python27\\python.exe\" drc.py'''
     junit 'drc.xml'
-    archiveArtifacts 'report.txt'
     if (drcstatus != 0)
         error "DRC reported failure"
 }
