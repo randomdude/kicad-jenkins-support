@@ -7,6 +7,11 @@ for boardfile in glob.glob("*.kicad_pcb"):
 
 	board = pcbnew.LoadBoard(boardfile)
 
+	# Ensure all zones are filled before going any further
+	filler = pcbnew.ZONE_FILLER(board)
+	zones = board.Zones()
+	filler.Fill(zones)
+
 	pc = pcbnew.PLOT_CONTROLLER(board)
 	po = pc.GetPlotOptions()
 
