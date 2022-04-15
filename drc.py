@@ -1,3 +1,6 @@
+import re
+from typing import List
+
 import pywinauto
 import pywintypes
 import os
@@ -8,46 +11,90 @@ import glob
 # It's a good idea to flush stdout so that Jenkins gets a better idea of progress.
 def printWithFlush(toWrite):
 	sys.stdout.write(toWrite)
-	if toWrite[-1] != '\n':
+	if toWrite.endswith('\n') == False:
 		sys.stdout.write('\n')
 	sys.stdout.flush()
+
+class violationLocation:
+	itemName: str
+	posY: float
+	posX: float
+
+	def __init__(self, posX, posY, itemName):
+		self.posX = posX
+		self.posY = posY
+		self.itemName = itemName
+
+class violationInfo:
+	locations: List[violationLocation]
+
+	def __init__(self, newSectionName):
+		self.section = newSectionName
+		self.id = None
+		self.message = None
+		self.rule = None
+		self.severity = None
+		self.locations = []
+
+class DRCReport:
+	friendlyName: str
+	violations: List[violationInfo]
+
+	def __init__(self, friendlyName):
+		self.friendlyName = friendlyName
+		self.violations = []
+
+	def containsErrors(self):
+		return len(self.violations) > 0
 
 def main():
 	# Enumerate PCB files, processing each in turn...
 	pcbfiles = glob.glob("*.kicad_pcb")
 	if len(pcbfiles) == 0:
 		raise Exception("No PCBs found")
+
 	results = []
 	for pcbfilefriendlyname in pcbfiles:
 		pcbfile = os.path.join(os.getcwd(), pcbfilefriendlyname)
 		results.append(doDRC(pcbfile))
 
 	# .. and write out our result XML.
+	resultXML = seraliseResults(results)
+	with open("drc.xml", "w") as f:
+		f.write("\n".join(resultXML))
+
+
+def seraliseResults(resultsToSerialise):
 	resLines = []
 	resLines.append("<testsuites>")
-	for resultInfo in results:
-		resLines.append("\t<testcase classname=\"kicad\" name=\"DRC_"  + resultInfo['filename'] +"\">")
-		if resultInfo['errorStatus'] == 1:
-			resLines.append("\t\t<failure type=\"DRC found errors\">")
-			for drcFailure in filter(lambda x: x.strip().find("@") == 0, resultInfo['drclines']):
-				resLines.append("\t\t\t" + drcFailure.strip())
-			resLines.append("\t\t</failure>")
+	for resultInfo in resultsToSerialise:
+		# We output one 'testcase' per source file.
+		resLines.append(f"\t<testcase classname=\"kicad\" name=\"DRC_{resultInfo.friendlyName}\">")
+
+		# Each source file has a 'failure' logged for each DRC violation.
+		for violation in resultInfo.violations:
+			resLines.append(f"\t\t<failure type=\"{violation.section} severity {violation.severity}\">")
+			resLines.append(f"\t\t\t{violation.rule}: {violation.message}")
+			for loc in violation.locations:
+				resLines.append(f"\t\t\tSee {loc.itemName} at ({loc.posX}, {loc.posY}")
+			resLines.append(f"\t\t</failure>")
+
 		resLines.append("\t</testcase>")
 	resLines.append("</testsuites>")
 
-	with open("drc.xml", "w") as f:
-		f.write("\n".join(resLines))
+	return "\n".join(resLines)
 
 def doDRC(pcbfile):
 	pcbfilefriendlyname = os.path.basename(pcbfile)
 
 	printWithFlush("Starting pcbnew")
-	app = pywinauto.application.Application().start("c:\\Program Files\\KiCad\\bin\\pcbnew.exe")
+	app = pywinauto.application.Application().start("c:\\Program Files\\KiCad\\6.0\\bin\\pcbnew.exe")
 
 	printWithFlush("Awaiting main window")
+	mainWindow = None
 	while True:
 		try:
-			app.top_window().wait("exists", timeout = 5)
+			app.top_window().wait("exists", timeout = 1)
 
 			# If pcbnew is already running, hit 'yes' to the confirmation dialog that asks if we want to start another instance.
 			if app.top_window().child_window(best_match="pcbnew is already running").exists():
@@ -58,8 +105,10 @@ def doDRC(pcbfile):
 				app.top_window().OK.click()
 				app.top_window().wait("exists", timeout = 5)
 				continue
+
 			# On first run, we might see this dialog asking if we want to use hardware acceleration for graphics.
-			if app.top_window().child_window(best_match="Enable Acceleration").exists() or app.top_window().child_window(best_match="Enable Graphics Acceleration").exists() :
+			if 	app.top_window().child_window(best_match="Enable Acceleration").exists() or \
+				app.top_window().child_window(best_match="Enable Graphics Acceleration").exists():
 				# If there's a 'no thanks' button, click it. Otherwise, there's some legacy behavior on old KiCard versions
 				# which we handle by just hitting the 'n' key.
 				if app.top_window().NoThanks.exists():
@@ -68,8 +117,18 @@ def doDRC(pcbfile):
 					app.top_window().type_keys('N')
 				continue
 
-			mainWindow = app.window(title="Pcbnew")
-			if mainWindow.exists() != 0:
+			# We may also see this setup window.
+			if 	app.window(best_match="Configure KiCad Settings Path").exists():
+				# Just accept defaults.
+				app.top_window().OK.click()
+				continue
+
+			for candidateTitle in ("Pcbnew", "PCB Editor"):
+				mainWindow = app.window(title=candidateTitle)
+				if mainWindow.exists() != 0:
+					break
+
+			if mainWindow is not None:
 				break
 
 		except RuntimeError:
@@ -90,18 +149,18 @@ def doDRC(pcbfile):
 			else:
 				break
 		except Exception as e:
-			printWithFlush( e)
+			printWithFlush(str(e))
 			continue
 
 	#
 	# Once we open the file, we must search for the main window again. This is because it will
-	# hanve changed its caption from 'Pcbnew' to 'Pcbnew - <name of file we opened>'.
+	# have changed its caption from 'Pcbnew' to 'Pcbnew - <name of file we opened>'.
 	#
 	printWithFlush("Open complete, finding main window")
 
 	while True:
 		try:
-			mainWindow = filter(lambda x: (x.window_text().find("Pcbnew") ==0), app.windows())
+			mainWindow = list(filter(lambda x: (x.window_text().find("Pcbnew") == 0) or (x.window_text().find("— PCB Editor") != -1), app.windows()))
 			if len(mainWindow) != 1:
 				raise Exception()
 			mainWindow = mainWindow[0]
@@ -134,37 +193,13 @@ def doDRC(pcbfile):
 			pass
 
 	printWithFlush("setting DRC window options")
-	while True:
-		try:
-			app.Drc_Control.child_window(best_match="Refill all zones before performing DRC").check()
-			# Set the output path. We must use .check_by_click here, since otherwise pcbnew doesn't enable the textbox.
-			checkbox = app.Drc_Control.child_window(best_match="CreateReportFileCheckBox")
-			reportFileBox = app.Drc_Control.child_window(best_match="Create Report File:Edit")
-
-			while True:
-				if checkbox.get_check_state() == 0:
-					checkbox.check_by_click()
-					try:
-						reportFileBox.wait("enabled")
-						break
-					except pywinauto.timings.TimeoutError:
-						printWithFlush("retrying checkbox checking")
-						continue
-			break
-		except pywintypes.error:
-			pass
-
-	reportFileBox.type_keys(os.getcwd() + "\\report.txt")
+	app.Drc_Control.child_window(best_match="Refill all zones before performing DRC").check()
 
 	# And start the DRC.
 	printWithFlush("Doing DRC")
-	# 5.1.0_1 renames 'start DRC' to 'run DRC'.
 	if app.Drc_Control.Run_DRC.exists():
 		app.Drc_Control.Run_DRC.wait("enabled")
 		app.Drc_Control.Run_DRC.click()
-	elif app.Drc_Control.Start_DRC.exists():
-		app.Drc_Control.Start_DRC.wait("enabled")
-		app.Drc_Control.Start_DRC.click()
 	else:
 		raise Exception("Can't find button to start DRC")
 
@@ -181,40 +216,42 @@ def doDRC(pcbfile):
 				continue
 			else:
 				raise Exception("Can't find refill OK button")
-			break
 		except pywinauto.timings.TimeoutError:
 			# ok, nevermind, there is no 'refill copper zones' dialog here.
 			pass
-		except pywintypes.error as e:
+		except pywintypes.error:
 			pass
 
-		# See if DRC has completed.
-		#
-		# My version of KiCad (5.0.2-1) throws an assert failure when generating DRC and outputting to a report file (!!)
-		# the assert is in CallStrftime, and gives us a yes/no/cancel dialog, with 'no' being the option to ignore the 
-		# failure. Ignoring the failure seems safe - it means the date is not printed in the report but has no other effects
-		# (so far!) so I'm just bodging this and doing that for now.
-		# The assertion failure:
-		#
-		# ../wxWidgets-3.0.4/src/common/datetime.cpp(298): assert "Assert failure" failed in CallStrftime(): strftime() failed
-		# Do you want to stop the program?\nYou can also choose [Cancel] to suppress further warnings
-		#
-		#
+		# See if DRC has completed. It'll enable the 'Run DRC' button when it has.
 		try:
-			if app.wxWidgetsDebugAlert.exists(timeout=0.5):
-				app.wxWidgetsDebugAlert.No.click()
-			# Is the DRC complete yet?
-			if app.Disk_File_Report_Completed.exists(timeout=0.5):
-				printWithFlush("DRC complete")
-				break
+			app.Drc_Control.Run_DRC.wait("enabled", timeout=0.5)
+			printWithFlush("DRC complete")
+			break
 		except pywintypes.error:
 			pass
 		except pywinauto.timings.TimeoutError:
 			pass
 
-	# Close the DRC completion dialog
-	app.Disk_File_Report_Completed.wait("exists", timeout = 5)
-	app.Disk_File_Report_Completed.close()
+	# Save a DRC report
+	printWithFlush("Saving DRC report..")
+	app.Drc_Control.Save.click()
+	reportFileBox = app.window(best_match="Save Report to File", enabled_only=True)
+	reportFileBox.type_keys(os.path.join(os.getcwd(), "report.txt"))
+	reportFileBox.child_window(best_match="Save").wait("enabled", 2).click()
+
+	# If the file already exists, overwrite it. Otherwise, just wait for the save to complete.
+	while True:
+		confirmBox = app.window(best_match="Confirm Save As", enabled_only=True)
+		if confirmBox.exists():
+			printWithFlush("Overwriting old DRC report")
+			confirmBox.Yes.click()
+			confirmBox.wait_not("visible", 3)
+
+		overwriteBox = app.window(best_match="Save Report to File", enabled_only=True)
+		if overwriteBox.exists() == False:
+			break
+
+	printWithFlush("Saving DRC report complete.")
 
 	# Now we can close the DRC window
 	app.Drc_Control.close()
@@ -223,7 +260,6 @@ def doDRC(pcbfile):
 	# so hit 'exit without save' and try again if we see a timeout. Also, sometimes we may see an assertion failure related
 	# to opengl, so cancel that too if we see it:
 	printWithFlush("closing pcbnew..")
-	retryClose = True
 	while app.is_process_running():
 		try:
 			if app.Dialog0.ExitWithoutSave.exists():
@@ -245,19 +281,43 @@ def doDRC(pcbfile):
 			printWithFlush("Exception closing pcbnew - " + str(e))
 
 	# Now read the DRC report, and see if any errors were detected.
-	errorstatus = 0
-	with open(os.getcwd() + "\\report.txt", "r") as f:
+	return parseDRCReport(pcbfilefriendlyname, os.path.join(os.getcwd(), "report.txt"))
+
+def parseDRCReport(pcbfilefriendlyname, reportFilename):
+	errorInfo = []
+	with open(reportFilename, "r") as f:
 		drclines = f.readlines()
-		errorstatuslines = filter(lambda x: x.find("** Found ") == 0, drclines)
-		errorcounts = map(lambda x: int(x.split()[2]), errorstatuslines)
-		if len(errorcounts) != 2:
-			printWithFlush("didn't find two '** Found' lines in report")
-			errorstatus = 1
-		elif (errorcounts[0] != 0) | (errorcounts[1] != 0):
-			errorstatus = 1
-	
-	# Store the result in our dict and we're done.
-	return { 'filename': pcbfilefriendlyname, 'errorStatus': errorstatus, 'drclines': drclines }
+
+		for line in drclines:
+			m = re.match( "\*\* Found [0-9]* (.*) violations \*\*", line)
+			if m is not None:
+				currentSection = m.groups()[0]
+				errorInfo.append(violationInfo(currentSection))
+				continue
+
+			# Something like "[silk_over_copper]: Silkscreen clipped by solder mask"
+			m = re.match( "^\[(.*)\]: (.*)$", line)
+			if m is not None:
+				errorInfo[-1].id = m.groups()[0]
+				errorInfo[-1].message = m.groups()[1]
+				continue
+
+			for key in ["Rule", "Severity"]:
+				m = re.match( f".*{key}: ([^;]*).*?", line)
+				if m is not None:
+					setattr(errorInfo[-1], key.lower(), m.groups()[0].strip())
+
+			# Something line "    @(132.2500 mm, 68.8500 mm): Line on F.Silkscreen"
+			m = re.match( "^    @\(([0-9.]*) mm, ([0-9.]*) mm\): (.*)", line)
+			if m is not None:
+				errorInfo[-1].locations.append(violationLocation(float(m.groups()[0]), float(m.groups()[1]), m.groups()[2] ))
+				continue
+
+	# And we're done.
+	toRet = DRCReport(pcbfilefriendlyname)
+	toRet.violations = errorInfo
+	return toRet
 
 if __name__ == "__main__":
 	main()
+
