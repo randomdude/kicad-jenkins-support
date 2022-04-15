@@ -4,6 +4,7 @@ def build(mainRepoPath, boardDir = '.') {
 
     // Build a venv for some of our scripts. While some run in KiCad's Python runtime, some do not.
     bat script: '''\"c:\\Python39\\python.exe" -m venv venv'''
+    def drcstatus = bat returnStatus: true, script: '''cmd /k \"venv\\Scripts\\activate.bat & python -m pip install -r requirements.txt\"'''
 
     // Checkout the main project, the one we will be building.
     mainCheckout = checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'mainCheckout']], submoduleCfg: [], userRemoteConfigs: [[url: "${mainRepoPath}"]]])
