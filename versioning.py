@@ -19,8 +19,8 @@ for pcbfile in pcbfiles:
 	with open(pcbfile, 'r') as file :
 		filedata = file.read()
 
-	filedata = filedata.replace('GIT_XXXXX', ('GIT_%d' % githash))
-	filedata = filedata.replace('BUILD_XXX', ('BUILD_%d' % buildnumber))
+	filedata = filedata.replace('GIT_XXXXX', ('GIT_%s' % githash))
+	filedata = filedata.replace('BUILD_XXX', ('BUILD_%s' % buildnumber))
 
 	with open(pcbfile, 'w') as file:
 		file.write(filedata)
