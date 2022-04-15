@@ -19,7 +19,6 @@ for boardfile in glob.glob("*.kicad_pcb"):
 	po.SetUseGerberProtelExtensions(True)
 	po.SetExcludeEdgeLayer(True)
 	po.SetUseGerberAttributes(False)
-	po.SetLineWidth(100000)
 	po.SetDrillMarksType(pcbnew.PCB_PLOT_PARAMS.NO_DRILL_SHAPE)
 	po.SetOutputDirectory("generated")
 
