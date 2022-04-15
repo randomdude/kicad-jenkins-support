@@ -55,5 +55,5 @@ for boardfile in glob.glob("*.kicad_pcb"):
 
 	genDrl = True
 	genMap = False
-	drlwriter.CreateDrillandMapFilesSet( "generated", genDrl, genMap );
+	drlwriter.CreateDrillandMapFilesSet( "generated", genDrl, genMap )
 

@@ -3,7 +3,7 @@ import sys
 import glob
 
 if len(sys.argv) != 3:
-	print "Usage: %s [git hash] [build number]" % (sys.argv[0])
+	print("Usage: %s [git hash] [build number]" % (sys.argv[0]))
 	sys.exit(-1)
 
 githash     = "%05X" % int(sys.argv[1], 16)
@@ -19,8 +19,8 @@ for pcbfile in pcbfiles:
 	with open(pcbfile, 'r') as file :
 		filedata = file.read()
 
-	filedata = filedata.replace('GIT_XXXXX', 'GIT_' + githash)
-	filedata = filedata.replace('BUILD_XXX', 'BUILD_' + buildnumber)
+	filedata = filedata.replace('GIT_XXXXX', ('GIT_%d' % githash))
+	filedata = filedata.replace('BUILD_XXX', ('BUILD_%d' % buildnumber))
 
 	with open(pcbfile, 'w') as file:
 		file.write(filedata)

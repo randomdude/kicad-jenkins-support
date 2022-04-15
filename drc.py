@@ -51,11 +51,11 @@ def doDRC(pcbfile):
 
 			# If pcbnew is already running, hit 'yes' to the confirmation dialog that asks if we want to start another instance.
 			if app.top_window().child_window(best_match="pcbnew is already running").exists():
-				app.top_window().Yes.click();
+				app.top_window().Yes.click()
 				app.top_window().wait("exists", timeout = 5)
 				continue
 			if app.top_window().child_window(best_match="Configure global footprint library").exists():
-				app.top_window().OK.click();
+				app.top_window().OK.click()
 				app.top_window().wait("exists", timeout = 5)
 				continue
 			# On first run, we might see this dialog asking if we want to use hardware acceleration for graphics.

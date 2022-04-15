@@ -9,7 +9,7 @@ The idea is to prevent those 'oh no I forgot to DRC before I sent the board to t
 
 Windows-only for now I'm afraid.
 
-= Use =
+### Use
 
 To use this, check it out in your Jenkinsfile and run the included groovy script. Something like this (excuse my crappy groovy):
 ```
