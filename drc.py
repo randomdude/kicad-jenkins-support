@@ -61,7 +61,7 @@ def main():
 	# .. and write out our result XML.
 	resultXML = seraliseResults(results)
 	with open("drc.xml", "w") as f:
-		f.write("\n".join(resultXML))
+		f.write(resultXML)
 
 
 def seraliseResults(resultsToSerialise):
