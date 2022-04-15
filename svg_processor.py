@@ -52,7 +52,7 @@ class SvgProcessor(object):
             self.svg_node.appendChild(output_node)
 
     def write(self, filename):
-        with open(filename, 'wb') as output_file:
+        with open(filename, 'w') as output_file:
             self.svg_node.writexml(output_file)
 
     def wrap_with_group(self, attrs):
@@ -80,7 +80,7 @@ class SvgProcessor(object):
             if m:
                 transformed_value = v(m.group('value'))
                 original_style = re.sub(
-                    r'\b' + escaped_key + r':[^;]*;',
+                    '\b' + escaped_key + r':[^;]*;',
                     k + ':' + transformed_value + ';',
                     original_style)
         node.attributes['style'] = original_style
