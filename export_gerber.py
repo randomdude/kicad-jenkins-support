@@ -1,11 +1,22 @@
+from pathlib import Path
+
 import pcbnew
 import shutil
 import os
 import glob
 
-for boardfile in glob.glob("*.kicad_pcb"):
+for boardfile in Path(".").rglob("*.kicad_pcb"):
+	if boardfile.is_dir():
+		continue
 
-	board = pcbnew.LoadBoard(boardfile)
+	board = pcbnew.LoadBoard(str(boardfile.absolute()))
+	outputFilename = os.path.join(os.path.abspath('.'), f"gerbers_{os.path.basename(str(boardfile.name))}")
+	print(f"Exporting board {boardfile.name}..")
+
+	tempDir = os.path.join(os.path.abspath('.'), "generated")
+	if Path(tempDir).exists():
+		shutil.rmtree(tempDir)
+	os.mkdir(tempDir)
 
 	# Ensure all zones are filled before going any further
 	filler = pcbnew.ZONE_FILLER(board)
@@ -20,7 +31,7 @@ for boardfile in glob.glob("*.kicad_pcb"):
 	po.SetExcludeEdgeLayer(True)
 	po.SetUseGerberAttributes(False)
 	po.SetDrillMarksType(pcbnew.PCB_PLOT_PARAMS.NO_DRILL_SHAPE)
-	po.SetOutputDirectory("generated")
+	po.SetOutputDirectory(tempDir)
 
 	layersToPlot = [  
 		(pcbnew.F_Cu, "F_Cu", "-F.Cu.gtl"),
@@ -54,5 +65,9 @@ for boardfile in glob.glob("*.kicad_pcb"):
 
 	genDrl = True
 	genMap = False
-	drlwriter.CreateDrillandMapFilesSet( "generated", genDrl, genMap )
+	drlwriter.CreateDrillandMapFilesSet( tempDir, genDrl, genMap )
 
+	print("Exported OK. Zipping..")
+	shutil.make_archive(outputFilename, 'zip', tempDir)
+	print("OK.")
+	shutil.rmtree(tempDir)

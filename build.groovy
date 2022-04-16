@@ -24,10 +24,7 @@ def build(mainRepoPath, boardDir = '.')
 
     // Now export gerbers..
     bat script: "${kicadPython} export_gerber.py"
-    gerberFilename = "${JOB_NAME}_${BUILD_NUMBER}.zip"
-    zip zipFile: gerberFilename, archive: false, dir: 'generated'
-    archiveArtifacts gerberFilename
-    bat label: '', returnStatus: true, script: "del ${gerberFilename}"
+    archiveArtifacts artifacts: 'gerbers_*.zip', caseSensitive: false, defaultExcludes: false
 
     // And run DRC, from our venv and not from KiCad's python runtime.
     def drcstatus = bat returnStatus: true, script: "cmd /k \"venv\\Scripts\\activate.bat & python drc.py\""
