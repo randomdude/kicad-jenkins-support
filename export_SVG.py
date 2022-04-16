@@ -12,7 +12,7 @@ from svg_processor import SvgProcessor
 
 for boardfile in Path(".").rglob("*.kicad_pcb"):
 	board = pcbnew.LoadBoard(str(boardfile.absolute()))
-	svgfilename = str(boardfile.name()) + ".svg"
+	svgfilename = boardfile.name + ".svg"
 
 	# Ensure all zones are filled before going any further
 	filler = pcbnew.ZONE_FILLER(board)
