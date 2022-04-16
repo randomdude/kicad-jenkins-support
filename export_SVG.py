@@ -11,8 +11,8 @@ from svg_processor import SvgProcessor
 # combine them all into one layer. This is because KiCad won't change colours on svg export.
 
 for boardfile in Path(".").rglob("*.kicad_pro"):
-	board = pcbnew.LoadBoard(boardfile.absolute())
-	svgfilename = boardfile.absolute() + ".svg"
+	board = pcbnew.LoadBoard(str(boardfile.absolute()))
+	svgfilename = str(boardfile.absolute()) + ".svg"
 
 	# Ensure all zones are filled before going any further
 	filler = pcbnew.ZONE_FILLER(board)
