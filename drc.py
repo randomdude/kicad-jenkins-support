@@ -68,18 +68,17 @@ def seraliseResults(resultsToSerialise):
 	resLines = []
 	resLines.append("<testsuites>")
 	for resultInfo in resultsToSerialise:
-		# We output one 'testcase' per source file.
-		resLines.append(f"\t<testcase classname=\"kicad\" name=\"DRC_{resultInfo.friendlyName}\">")
-
-		# Each source file has a 'failure' logged for each DRC violation.
+		violationIdx = 0
 		for violation in resultInfo.violations:
+			# We output one 'testcase' per DRC error, containing a single failure.
+			resLines.append(f"\t<testcase classname=\"kicad\" name=\"DRC_{resultInfo.friendlyName}_{violationIdx}\">")
 			resLines.append(f"\t\t<failure type=\"{violation.section} severity {violation.severity}\">")
 			resLines.append(f"\t\t\t{violation.rule}: {violation.message}")
 			for loc in violation.locations:
 				resLines.append(f"\t\t\tSee {loc.itemName} at ({loc.posX}, {loc.posY})")
 			resLines.append(f"\t\t</failure>")
-
-		resLines.append("\t</testcase>")
+			resLines.append("\t</testcase>")
+			violationIdx = violationIdx + 1
 	resLines.append("</testsuites>")
 
 	return "\n".join(resLines)
