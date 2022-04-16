@@ -76,7 +76,7 @@ def seraliseResults(resultsToSerialise):
 			resLines.append(f"\t\t<failure type=\"{violation.section} severity {violation.severity}\">")
 			resLines.append(f"\t\t\t{violation.rule}: {violation.message}")
 			for loc in violation.locations:
-				resLines.append(f"\t\t\tSee {loc.itemName} at ({loc.posX}, {loc.posY}")
+				resLines.append(f"\t\t\tSee {loc.itemName} at ({loc.posX}, {loc.posY})")
 			resLines.append(f"\t\t</failure>")
 
 		resLines.append("\t</testcase>")
@@ -193,6 +193,7 @@ def doDRC(pcbfile):
 			pass
 
 	printWithFlush("setting DRC window options")
+#	app.Drc_Control.child_window(best_match="Test for parity between PCB and schematic").check()
 	app.Drc_Control.child_window(best_match="Refill all zones before performing DRC").check()
 
 	# And start the DRC.
@@ -285,19 +286,20 @@ def doDRC(pcbfile):
 
 def parseDRCReport(pcbfilefriendlyname, reportFilename):
 	errorInfo = []
+	currentSection = None
 	with open(reportFilename, "r") as f:
 		drclines = f.readlines()
 
 		for line in drclines:
-			m = re.match( "\*\* Found [0-9]* (.*) violations \*\*", line)
+			m = re.match( "\*\* Found [0-9]* (.*) \*\*", line)
 			if m is not None:
 				currentSection = m.groups()[0]
-				errorInfo.append(violationInfo(currentSection))
 				continue
 
 			# Something like "[silk_over_copper]: Silkscreen clipped by solder mask"
 			m = re.match( "^\[(.*)\]: (.*)$", line)
 			if m is not None:
+				errorInfo.append(violationInfo(currentSection))
 				errorInfo[-1].id = m.groups()[0]
 				errorInfo[-1].message = m.groups()[1]
 				continue
@@ -320,4 +322,3 @@ def parseDRCReport(pcbfilefriendlyname, reportFilename):
 
 if __name__ == "__main__":
 	main()
-
