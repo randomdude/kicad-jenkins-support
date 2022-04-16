@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 from typing import List
 
 import pywinauto
@@ -48,15 +49,14 @@ class DRCReport:
 		return len(self.violations) > 0
 
 def main():
-	# Enumerate PCB files, processing each in turn...
-	pcbfiles = glob.glob("*.kicad_pcb")
-	if len(pcbfiles) == 0:
-		raise Exception("No PCBs found")
+	# Enumerate KiCAD projects
+	projectFiles = list(Path(".").rglob("*.kicad_pro"))
+	if len(projectFiles) == 0:
+		raise Exception("No KiCAD projects found")
 
 	results = []
-	for pcbfilefriendlyname in pcbfiles:
-		pcbfile = os.path.join(os.getcwd(), pcbfilefriendlyname)
-		results.append(doDRC(pcbfile))
+	for projectFile in projectFiles:
+		results = results + list(doProject(projectFile.absolute()))
 
 	# .. and write out our result XML.
 	resultXML = seraliseResults(results)
@@ -83,13 +83,74 @@ def seraliseResults(resultsToSerialise):
 
 	return "\n".join(resLines)
 
-def doDRC(pcbfile):
-	pcbfilefriendlyname = os.path.basename(pcbfile)
 
-	printWithFlush("Starting pcbnew")
-	app = pywinauto.application.Application().start("c:\\Program Files\\KiCad\\6.0\\bin\\pcbnew.exe")
+def doProject(projectFile):
+	printWithFlush(f"Starting KiCAD for project {projectFile}")
+	app = pywinauto.application.Application().start(f"\"c:\\Program Files\\KiCad\\6.0\\bin\\kicad.exe\" \"{projectFile}\"")
 
-	printWithFlush("Awaiting main window")
+	try:
+		printWithFlush("Awaiting main window")
+		app.top_window().wait("exists", timeout = 5)
+		projectWindow = app.top_window()
+		windowTitle: str = projectWindow.texts()[0]
+		if windowTitle.find(" — KiCad 6.0") == -1:
+			raise Exception(f"Expected KiCad main window but found a '{windowTitle}'")
+
+		printWithFlush("Finding PCBs..")
+		treeRoot = projectWindow.TreeView.tree_root()
+		print(f"Project: {treeRoot.text()}")
+		# Find PCBs, only in the top level directory. KiCAD will only support one schematic per project.
+		PCBFiles = list(findNextPCB(f'\\{treeRoot.text()}', treeRoot, 1))
+
+		# Now process each in turn.
+		for pcbFile in PCBFiles:
+			pcbfilefriendlyname = os.path.basename(pcbFile)
+
+			# Open PCBNew..
+			projectWindow.TreeView.get_item(pcbFile).click()
+			projectWindow.TreeView.type_keys('{ENTER}')
+
+			yield doDRC(app, pcbfilefriendlyname)
+	finally:
+		printWithFlush("closing KiCAD..")
+		while app.is_process_running():
+			try:
+				if app.Dialog0.ExitWithoutSave.exists():
+					printWithFlush("Closing 'save changes' dialog via 'exit without save'")
+					app.Dialog0.ExitWithoutSave.click()
+					continue
+				if app.Dialog0.DiscardChanges.exists():
+					printWithFlush("Closing 'save changes' dialog via 'discard changes'")
+					app.Dialog0.DiscardChanges.click()
+					continue
+				elif app.wxWidgetsDebugAlert.exists():
+					printWithFlush("Closing 'assertion failure' dialog")
+					printWithFlush( app.wxWidgetsDebugAlert.dump_tree())
+					app.wxWidgetsDebugAlert.Yes.click()
+					continue
+				else:
+					app.top_window().close(wait_time = 0.1)
+			except Exception as e:
+				printWithFlush("Exception closing KiCAD - " + str(e))
+
+def findNextPCB(currentPath, treeItem, maxDepth, currentDepth = 0):
+	if currentDepth >= maxDepth:
+		return
+
+	# Any PCBs? if so, yield those.
+	for file in treeItem.children():
+		if hasattr(file, 'text') == False:
+			continue
+
+		if file.text().endswith("kicad_pcb"):
+			yield os.path.join(currentPath, file.text())
+		else:
+			for pcb in findNextPCB(os.path.join(currentPath, file.text()), file, maxDepth, currentDepth + 1):
+				yield pcb
+
+
+def doDRC(app, pcbfilefriendlyname: str) -> DRCReport:
+	printWithFlush("Awaiting PCBNew main window")
 	mainWindow = None
 	while True:
 		try:
@@ -122,24 +183,17 @@ def doDRC(pcbfile):
 				app.top_window().OK.click()
 				continue
 
-			for candidateTitle in ("Pcbnew", "PCB Editor"):
-				mainWindow = app.window(title=candidateTitle)
-				if mainWindow.exists() != 0:
-					break
-
-			if mainWindow is not None:
+			mainWindow = app.window(title_re=".* PCB Editor")
+			if mainWindow is not None and mainWindow.exists():
 				break
 
 		except RuntimeError:
 			pass
+		except pywinauto.application.ProcessNotFoundError:
+			printWithFlush("Waiting for pcbnew.exe to be spawned..")
+			time.sleep(0.1)
 
-	printWithFlush("Opening file")
-	mainWindow.menu_select("File->Open")
-
-	app.OpenBoardFile.type_keys(pcbfile, with_spaces = True)
-	app.OpenBoardFile.Open.click()
-
-	while True:
+	while False:
 		try:
 			if app.OpenBoardFile.exists(timeout=None, retry_interval=None):
 				printWithFlush( 'Retrying file open dialog completion')
@@ -159,10 +213,9 @@ def doDRC(pcbfile):
 
 	while True:
 		try:
-			mainWindow = list(filter(lambda x: (x.window_text().find("Pcbnew") == 0) or (x.window_text().find("— PCB Editor") != -1), app.windows()))
-			if len(mainWindow) != 1:
-				raise Exception()
-			mainWindow = mainWindow[0]
+			mainWindow = app.window(title_re = ".* PCB Editor")
+			if mainWindow.exists() == False:
+				raise Exception(f'No PCB Editor window found')
 			break
 		except AttributeError:
 			printWithFlush("Waiting for load to complete")
@@ -192,7 +245,7 @@ def doDRC(pcbfile):
 			pass
 
 	printWithFlush("setting DRC window options")
-#	app.Drc_Control.child_window(best_match="Test for parity between PCB and schematic").check()
+	app.Drc_Control.child_window(best_match="Test for parity between PCB and schematic").check()
 	app.Drc_Control.child_window(best_match="Refill all zones before performing DRC").check()
 
 	# And start the DRC.
@@ -260,7 +313,7 @@ def doDRC(pcbfile):
 	# so hit 'exit without save' and try again if we see a timeout. Also, sometimes we may see an assertion failure related
 	# to opengl, so cancel that too if we see it:
 	printWithFlush("closing pcbnew..")
-	while app.is_process_running():
+	while mainWindow.exists():
 		try:
 			if app.Dialog0.ExitWithoutSave.exists():
 				printWithFlush("Closing 'save changes' dialog via 'exit without save'")
@@ -283,7 +336,7 @@ def doDRC(pcbfile):
 	# Now read the DRC report, and see if any errors were detected.
 	return parseDRCReport(pcbfilefriendlyname, os.path.join(os.getcwd(), "report.txt"))
 
-def parseDRCReport(pcbfilefriendlyname, reportFilename):
+def parseDRCReport(pcbfilefriendlyname: str, reportFilename: str) -> DRCReport:
 	errorInfo = []
 	currentSection = None
 	with open(reportFilename, "r") as f:
