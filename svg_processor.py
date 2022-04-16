@@ -31,7 +31,7 @@ class SvgProcessor(object):
 
     def apply_color_transform(self, transform_function):
         # Set fill and stroke on all groups
-        for group in self.svg_node.getElementsByTagName('g'):
+        for group in self.svg_node.getElementsByTagName('g') + self.svg_node.getElementsByTagName('path') :
             SvgProcessor._apply_transform(group, {
                 'fill': transform_function,
                 'stroke': transform_function,
@@ -76,12 +76,12 @@ class SvgProcessor(object):
         original_style = node.attributes['style'].value
         for (k,v) in values.items():
             escaped_key = re.escape(k)
-            m = re.search(r'\b' + escaped_key + r':(?P<value>[^;]*);', original_style)
+            m = re.search(f'\\b{escaped_key}:(?P<value>[^;]*);', original_style)
             if m:
                 transformed_value = v(m.group('value'))
                 original_style = re.sub(
-                    '\b' + escaped_key + r':[^;]*;',
-                    k + ':' + transformed_value + ';',
+                    f'\\b{escaped_key}:[^;]*;',
+                    f'{k}:{transformed_value};',
                     original_style)
         node.attributes['style'] = original_style
 

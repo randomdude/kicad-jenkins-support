@@ -24,16 +24,14 @@ for boardfile in Path(".").rglob("*.kicad_pcb"):
 	po.SetPlotFrameRef(False)
 
 	# todo: clean up string literals
-	layers = [ 
-		(pcbnew.B_Cu			, "B_Cu"   		, "#008800", "1.0"),
-		(pcbnew.F_Cu			, "F_Cu"   		, "#CC0000", "1.0"),
-		(pcbnew.F_SilkS		, "F.SilkS"		, "#00CCCC", "0.8"),
-		(pcbnew.B_SilkS		, "B.SilkS"		, "#CC00CC", "0.8"),
-		(pcbnew.F_Fab			, "F.Fab"  		, "#CCCC00", "0.8"),
-		(pcbnew.B_Fab			, "B.Fab"  		, "#CCcc00", "0.8"),
-		(pcbnew.Edge_Cuts	, "Edge_Cuts"	, "#000000", "1.0"),
-	#	(pcbnew.F_Mask , "F.Mask",  "#800000", "0.8"),
-	#	(pcbnew.B_Mask , "B.Mask",  "#800000", "0.8")
+	layers = [
+		(pcbnew.B_Cu		, "B_Cu"   		, "#4d7fc4", "0.666"),
+		(pcbnew.F_Cu		, "F_Cu"   		, "#c83434", "0.5"),
+		(pcbnew.F_SilkS		, "F.SilkS"		, "#f2eda1", "0.8"),
+		(pcbnew.B_SilkS		, "B.SilkS"		, "#e8b2a7", "0.8"),
+		(pcbnew.F_Fab		, "F.Fab"  		, "#afafaf", "0.8"),
+		(pcbnew.B_Fab		, "B.Fab"  		, "#585d84", "0.8"),
+		(pcbnew.Edge_Cuts	, "Edge_Cuts"	, "#d0d2cd", "1.0"),
 	]
 
 	processed_svg_files = []
@@ -50,7 +48,7 @@ for boardfile in Path(".").rglob("*.kicad_pcb"):
 		processor = SvgProcessor(layerFilename)
 		def colorize(original):
 				if original.lower() == '#000000':
-						return a[2]
+					return a[2]
 				return original
 		processor.apply_color_transform(colorize)
 		processor.wrap_with_group({

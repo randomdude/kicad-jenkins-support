@@ -19,7 +19,7 @@ def build(mainRepoPath, boardDir = '.')
 
     // And export an image of the board.
     bat script: "${kicadPython} export_SVG.py"
-    bat script: "refreshenv && magick mogrify -format png -trim -border 10 *.svg"
+    bat script: "refreshenv && magick mogrify -format png -trim -border 10 -resize 640x480 *.svg"
     archiveArtifacts artifacts: '*.png', caseSensitive: false, defaultExcludes: false
 
     // Now export gerbers..
