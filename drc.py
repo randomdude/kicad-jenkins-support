@@ -71,7 +71,7 @@ def seraliseResults(resultsToSerialise):
 		violationIdx = 0
 		for violation in resultInfo.violations:
 			# We output one 'testcase' per DRC error, containing a single failure.
-			resLines.append(f"\t<testcase classname=\"kicad\" name=\"DRC_{resultInfo.friendlyName}_{violationIdx}\">")
+			resLines.append(f"\t<testcase classname=\"kicad\" name=\"DRC_{resultInfo.friendlyName}_{violation.rule}_{violationIdx}\">")
 			resLines.append(f"\t\t<failure type=\"{violation.section} severity {violation.severity}\">")
 			resLines.append(f"\t\t\t{violation.rule}: {violation.message}")
 			for loc in violation.locations:
