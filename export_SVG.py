@@ -12,7 +12,7 @@ from svg_processor import SvgProcessor
 
 for boardfile in Path(".").rglob("*.kicad_pcb"):
 	board = pcbnew.LoadBoard(str(boardfile.absolute()))
-	svgfilename = str(boardfile.absolute()) + ".svg"
+	svgfilename = str(boardfile.name()) + ".svg"
 
 	# Ensure all zones are filled before going any further
 	filler = pcbnew.ZONE_FILLER(board)
@@ -42,7 +42,7 @@ for boardfile in Path(".").rglob("*.kicad_pcb"):
 	# generated svg.
 	for a in layers:
 		pc.SetLayer(a[0])
-		pc.OpenPlotfile("layer_ " + a[1], pcbnew.PLOT_FORMAT_SVG, "idk")
+		pc.OpenPlotfile(f"layer_ {a[1]}", pcbnew.PLOT_FORMAT_SVG, "idk")
 		layerFilename = pc.GetPlotFileName()
 		pc.PlotLayer()
 		pc.ClosePlot()
