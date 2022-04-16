@@ -79,6 +79,11 @@ def seraliseResults(resultsToSerialise):
 			resLines.append(f"\t\t</failure>")
 			resLines.append("\t</testcase>")
 			violationIdx = violationIdx + 1
+
+	# If there are no errors at all, we'll need to specify that otherwise Jenkins will complain about the empty file.
+	if any(filter(lambda x: x.containsErrors(), resultsToSerialise)) == False:
+			resLines.append(f"\t<testcase classname=\"kicad\" name=\"DRC\"></testcase>")
+
 	resLines.append("</testsuites>")
 
 	return "\n".join(resLines)
