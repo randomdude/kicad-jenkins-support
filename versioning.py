@@ -9,18 +9,17 @@ if len(sys.argv) != 3:
 githash     = "%05X" % int(sys.argv[1], 16)
 buildnumber = "%03d" % int(sys.argv[2])
 
-pcbfiles = glob.glob("*.kicad_pcb")
-if len(pcbfiles) == 0:
-	raise Exception("No PCBs found")
+for boardfileinfo in Path(".").rglob("*.kicad_pcb"):
+	if boardfileinfo.is_dir():
+		continue
 
-for pcbfile in pcbfiles:
-	pcbfile = os.path.join( os.getcwd(), pcbfile)
+	boardfile = str(boardfileinfo.absolute())
 
-	with open(pcbfile, 'r') as file :
+	with open(boardfile, 'r') as file:
 		filedata = file.read()
 
 	filedata = filedata.replace('GIT_XXXXX', ('GIT_%s' % githash))
 	filedata = filedata.replace('BUILD_XXX', ('BUILD_%s' % buildnumber))
 
-	with open(pcbfile, 'w') as file:
-		file.write(filedata)
+	with open(boardfile, 'w') as file:
+		file.write(boardfile)

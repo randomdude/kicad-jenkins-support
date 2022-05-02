@@ -11,7 +11,6 @@ def build(mainRepoPath, boardDir = '.')
 
     // Checkout the main project, the one we will be building.
     mainCheckout = checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'mainCheckout']], submoduleCfg: [], userRemoteConfigs: [[url: "${mainRepoPath}"]]])
-    bat script: "xcopy mainCheckout\\${boardDir}\\* . /E /Y"
 
     // Apply versioning according to git commit string
     buildNo = mainCheckout.GIT_COMMIT.substring(0, 5)
