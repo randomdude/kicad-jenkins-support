@@ -26,7 +26,7 @@ def build(mainRepoPath, boardDir = '.')
     archiveArtifacts artifacts: 'gerbers_*.zip', caseSensitive: false, defaultExcludes: false
 
     // And run DRC, from our venv and not from KiCad's python runtime.
-    def drcstatus = bat returnStatus: true, script: "cmd /k \"venv\\Scripts\\activate.bat & python drc.py\""
+    def drcstatus = bat returnStatus: true, script: "cmd /C \"venv\\Scripts\\activate.bat & python drc.py\""
     junit 'drc.xml'
     if (drcstatus != 0)
         error "DRC reported failure"
