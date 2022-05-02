@@ -14,13 +14,13 @@ for boardfileinfo in Path(".").rglob("*.kicad_pcb"):
 	if boardfileinfo.is_dir():
 		continue
 
-	boardfile = str(boardfileinfo.absolute())
+	boardfileAbsPath = str(boardfileinfo.absolute())
 
-	with open(boardfile, 'r') as file:
+	with open(boardfileAbsPath, 'r') as file:
 		filedata = file.read()
 
 	filedata = filedata.replace('GIT_XXXXX', ('GIT_%s' % githash))
 	filedata = filedata.replace('BUILD_XXX', ('BUILD_%s' % buildnumber))
 
-	with open(boardfile, 'w') as file:
-		file.write(boardfile)
+	with open(boardfileAbsPath, 'w') as file:
+		file.write(filedata)
